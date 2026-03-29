@@ -14,26 +14,23 @@ HEADERS = {
 }
 
 
-def ask_gemini_flash(prompt):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-    body = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 1024}
-    }
-    res = requests.post(url, json=body)
-    res.raise_for_status()
-    return res.json()["candidates"][0]["content"]["parts"][0]["text"]
+GROQ_API_KEY = os.environ["GROQ_API_KEY"]
 
-
-def ask_gemini_pro(prompt):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key={GEMINI_API_KEY}"
-    body = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 65536}
+def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=1024):
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
     }
-    res = requests.post(url, json=body)
+    body = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": 0.9
+    }
+    res = requests.post(url, headers=headers, json=body)
     res.raise_for_status()
-    return res.json()["candidates"][0]["content"]["parts"][0]["text"]
+    return res.json()["choices"][0]["message"]["content"]
 
 
 def generate_idea_and_code():
@@ -47,7 +44,7 @@ Line 1: repo-name-with-dashes (lowercase, no spaces)
 Line 2: Human Readable Tool Title
 Line 3: One sentence description of what it does."""
 
-    idea_raw = ask_gemini_flash(idea_prompt).strip()
+    idea_raw = ask_groq(idea_prompt).strip()
     lines = [l.strip() for l in idea_raw.splitlines() if l.strip()]
     name = lines[0]
     title = lines[1]
@@ -65,7 +62,7 @@ Rules:
 
 Respond with ONLY the raw HTML code. No explanation, no markdown, no backticks."""
 
-    html = ask_gemini_pro(code_prompt).strip()
+    html = ask_groq(code_prompt, max_tokens=8000).strip()
     if html.startswith("```"):
         html = html.split("```")[1]
         if html.startswith("html"):
