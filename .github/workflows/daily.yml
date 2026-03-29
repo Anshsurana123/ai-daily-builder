@@ -23,7 +23,7 @@ jobs:
 
       - name: Run daily builder
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+             GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+             GITHUB_USERNAME: ${{ secrets.GH_USERNAME }}
         run: python main.py
