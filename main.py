@@ -157,6 +157,10 @@ def update_index_repo(name, title, description, date_str):
 
 
 def main():
+     # debug
+    res = requests.get("https://api.github.com/user", headers=HEADERS)
+    print(f"🔑 Auth check: {res.status_code} - {res.json().get('login')}")
+    
     date_str = datetime.now().strftime("%Y-%m-%d")
     print(f"🚀 Starting daily build for {date_str}")
 
