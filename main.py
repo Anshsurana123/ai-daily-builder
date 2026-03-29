@@ -14,11 +14,22 @@ HEADERS = {
 }
 
 
-def ask_gemini(prompt):
+def ask_gemini_flash(prompt):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 8192}
+        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 1024}
+    }
+    res = requests.post(url, json=body)
+    res.raise_for_status()
+    return res.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+
+def ask_gemini_pro(prompt):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key={GEMINI_API_KEY}"
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 65536}
     }
     res = requests.post(url, json=body)
     res.raise_for_status()
@@ -36,7 +47,7 @@ Line 1: repo-name-with-dashes (lowercase, no spaces)
 Line 2: Human Readable Tool Title
 Line 3: One sentence description of what it does."""
 
-    idea_raw = ask_gemini(idea_prompt).strip()
+    idea_raw = ask_gemini_flash(idea_prompt).strip()
     lines = [l.strip() for l in idea_raw.splitlines() if l.strip()]
     name = lines[0]
     title = lines[1]
@@ -54,7 +65,7 @@ Rules:
 
 Respond with ONLY the raw HTML code. No explanation, no markdown, no backticks."""
 
-    html = ask_gemini(code_prompt).strip()
+    html = ask_gemini_pro(code_prompt).strip()
     if html.startswith("```"):
         html = html.split("```")[1]
         if html.startswith("html"):
