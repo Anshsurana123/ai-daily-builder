@@ -52,25 +52,19 @@ Line 3: One sentence description of what it does."""
     description = lines[2]
 
     # Step 2: get the HTML separately
-    code_prompt = f"""Build a complete, working single HTML file for this tool: {title}
+    code_prompt = f"""Build a complete, fully functional single-page web tool: {title}
 Description: {description}
 
-Rules:
-- Fully functional, no placeholders
-- Inline CSS and JS only
-- Clean modern design (dark or light theme)
-- No external dependencies except CDN libraries if truly needed
+STRICT RULES:
+- Every feature must ACTUALLY WORK — no fake, simulated, or placeholder functionality
+- If the tool needs AI, use the Gemini API with key "AIzaSy..." — just kidding, keep it client-side only
+- Use clever JavaScript to make it genuinely useful — localStorage for persistence, Canvas for visuals, Web APIs like speech synthesis, geolocation, clipboard, drag and drop etc where relevant
+- Make the UI look stunning — gradients, animations, smooth transitions, modern design
+- Think beyond basic input/output — add export buttons, keyboard shortcuts, live previews, history, undo/redo if relevant
+- Single HTML file, inline CSS and JS only
+- No external dependencies except CDN libraries if truly needed (chart.js, tone.js etc)
 
-Respond with ONLY the raw HTML code. No explanation, no markdown, no backticks."""
-
-    html = ask_groq(code_prompt, max_tokens=8000).strip()
-    if html.startswith("```"):
-        html = html.split("```")[1]
-        if html.startswith("html"):
-            html = html[4:]
-        html = html.strip().rstrip("```").strip()
-
-    return {"name": name, "title": title, "description": description, "html": html}
+Respond with ONLY the raw HTML. No explanation, no markdown, no backticks."""
 
 
 def create_github_repo(name, description):
