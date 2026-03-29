@@ -17,7 +17,7 @@ HEADERS = {
 
 GROQ_API_KEY = os.environ["GROQ_API_KEY"]
 
-def ask_groq(prompt, model="deepseek-r1-distill-llama-70b", max_tokens=1024):
+def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=1024):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
