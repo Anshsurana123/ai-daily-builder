@@ -112,7 +112,7 @@ def create_github_repo(name, description):
     url = "https://api.github.com/user/repos"
     body = {
         "name": name,
-        "description": description,
+        "description": description[:350],
         "homepage": f"https://{GITHUB_USERNAME}.github.io/{name}",
         "private": False,
         "auto_init": False
