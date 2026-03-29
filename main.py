@@ -1,21 +1,19 @@
 import os
+import re
 import requests
-import json
 import base64
 from datetime import datetime
 
-GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 GITHUB_TOKEN = os.environ["GH_PAT"]
 GITHUB_USERNAME = os.environ["GITHUB_USERNAME"]
 GROQ_API_KEY = os.environ["GROQ_API_KEY"]
+CEREBRAS_API_KEY = os.environ["CEREBRAS_API_KEY"]
 
 HEADERS = {
     "Authorization": f"token {GITHUB_TOKEN}",
     "Accept": "application/vnd.github+json"
 }
 
-
-GROQ_API_KEY = os.environ["GROQ_API_KEY"]
 
 def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=1024):
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -30,21 +28,40 @@ def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=1024):
         "temperature": 0.9
     }
     res = requests.post(url, headers=headers, json=body)
-    print(f"❌ Groq error: {res.status_code} - {res.text}")
     res.raise_for_status()
     return res.json()["choices"][0]["message"]["content"]
 
 
+def ask_cerebras(prompt, max_tokens=8192):
+    from cerebras.cloud.sdk import Cerebras
+    client = Cerebras(api_key=CEREBRAS_API_KEY)
+    response = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="qwen-3-235b-a22b-instruct-2507",
+        max_tokens=max_tokens,
+        temperature=0.9
+    )
+    return response.choices[0].message.content
+
+
+def ask_for_code(prompt):
+    try:
+        print("🧠 Using Cerebras for code...")
+        return ask_cerebras(prompt)
+    except Exception as e:
+        print(f"⚠️ Cerebras failed: {e}, falling back to Groq...")
+        return ask_groq(prompt, max_tokens=32000)
+
+
 def generate_idea_and_code():
-    import re
     today = datetime.now().strftime("%B %d, %Y")
 
-    # Step 1: get idea as simple text
+    # Step 1: get idea from Groq (fast, small task)
     idea_prompt = f"""You are an AI that builds impressive single-page web apps daily. Today is {today}.
 
 Come up with a unique, impressive web app idea that feels like a mini SaaS — something with a dashboard, user data, real functionality. Think: habit trackers, finance tools, project managers, note apps, study tools, writing assistants etc.
 
-Respond in exactly 3 lines:
+Respond in exactly 3 lines with no extra text:
 Line 1: repo-name-with-dashes (lowercase, no spaces)
 Line 2: Human Readable App Title
 Line 3: One sentence description of what it does."""
@@ -63,7 +80,7 @@ Line 3: One sentence description of what it does."""
 
     print(f"💡 Idea: {title} — {description}")
 
-    # Step 2: get the HTML separately
+    # Step 2: get the HTML from Cerebras (quality matters here)
     code_prompt = f"""Build a complete, fully functional single-page web app: {title}
 Description: {description}
 
@@ -80,7 +97,7 @@ Make it feel like a REAL SaaS product:
 Single HTML file, inline CSS and JS, CDN libraries allowed.
 Respond with ONLY the raw HTML. No explanation, no markdown, no backticks."""
 
-    html = ask_groq(code_prompt, max_tokens=32000).strip()
+    html = ask_for_code(code_prompt).strip()
     if html.startswith("```"):
         html = html.split("```")[1]
         if html.startswith("html"):
@@ -88,6 +105,7 @@ Respond with ONLY the raw HTML. No explanation, no markdown, no backticks."""
         html = html.strip().rstrip("```").strip()
 
     return {"name": name, "title": title, "description": description, "html": html}
+
 
 def create_github_repo(name, description):
     url = "https://api.github.com/user/repos"
@@ -122,14 +140,14 @@ def enable_github_pages(repo_name):
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo_name}/pages"
     body = {"source": {"branch": "main", "path": "/"}}
     res = requests.post(url, headers=HEADERS, json=body)
-    if res.status_code in [201, 409]:  # 409 = already enabled
+    if res.status_code in [201, 409]:
         print(f"✅ GitHub Pages enabled")
     else:
         print(f"⚠️ Pages status: {res.status_code} - {res.text}")
 
 
 def update_index_repo(name, title, description, date_str):
-    index_repo = f"{GITHUB_USERNAME}.github.io" if False else "ai-builds-index"
+    index_repo = "ai-builds-index"
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{index_repo}/contents/README.md"
 
     res = requests.get(url, headers=HEADERS)
@@ -138,12 +156,11 @@ def update_index_repo(name, title, description, date_str):
         current = base64.b64decode(data["content"]).decode()
         sha = data["sha"]
     else:
-        current = "# 🤖 AI Daily Builds\n\nA new web tool, built and deployed every day by AI.\n\n| Date | Tool | Description | Live |\n|------|------|-------------|------|\n"
+        current = "# 🤖 AI Daily Builds\n\nA new web app, built and deployed every day by AI.\n\n| Date | App | Description | Live |\n|------|-----|-------------|------|\n"
         sha = None
 
     new_row = f"| {date_str} | [{title}](https://github.com/{GITHUB_USERNAME}/{name}) | {description} | [Live](https://{GITHUB_USERNAME}.github.io/{name}) |\n"
 
-    # insert after table header
     lines = current.splitlines(keepends=True)
     insert_at = None
     for i, line in enumerate(lines):
@@ -173,14 +190,9 @@ def update_index_repo(name, title, description, date_str):
 
 
 def main():
-     # debug
-    res = requests.get("https://api.github.com/user", headers=HEADERS)
-    print(f"🔑 Auth check: {res.status_code} - {res.json().get('login')}")
-    
     date_str = datetime.now().strftime("%Y-%m-%d")
     print(f"🚀 Starting daily build for {date_str}")
 
-    print("🧠 Asking Gemini for idea + code...")
     data = generate_idea_and_code()
 
     name = f"{data['name']}-{date_str}"
@@ -188,13 +200,11 @@ def main():
     description = data["description"]
     html = data["html"]
 
-    print(f"💡 Idea: {title} — {description}")
-
     create_github_repo(name, description)
 
     readme = f"# {title}\n\n{description}\n\n🔗 **Live:** https://{GITHUB_USERNAME}.github.io/{name}\n\n> Built autonomously by AI on {date_str}"
     push_file(name, "README.md", readme, "Initial commit")
-    push_file(name, "index.html", html, "Add web tool")
+    push_file(name, "index.html", html, "Add web app")
 
     enable_github_pages(name)
     update_index_repo(name, title, description, date_str)
