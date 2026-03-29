@@ -64,7 +64,7 @@ Come up with a unique, impressive web app idea that feels like a mini SaaS — s
 Respond in exactly 3 lines with no extra text:
 Line 1: repo-name-with-dashes (lowercase, no spaces)
 Line 2: Human Readable App Title
-Line 3: One sentence description of what it does."""
+Line 3: Deatiled description of what it does."""
 
     idea_raw = ask_groq(idea_prompt).strip()
     lines = [l.strip() for l in idea_raw.splitlines() if l.strip()]
@@ -95,6 +95,7 @@ Make it feel like a REAL SaaS product:
 - Fully functional — zero placeholder content
 
 Single HTML file, inline CSS and JS, CDN libraries allowed.
+after genrating the code double check it for any errors and if any fix before giving the final response
 Respond with ONLY the raw HTML. No explanation, no markdown, no backticks."""
 
     html = ask_for_code(code_prompt).strip()
