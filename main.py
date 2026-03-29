@@ -45,11 +45,20 @@ Line 1: repo-name-with-dashes (lowercase, no spaces)
 Line 2: Human Readable Tool Title
 Line 3: One sentence description of what it does."""
 
-    idea_raw = ask_groq(idea_prompt).strip()
-    lines = [l.strip() for l in idea_raw.splitlines() if l.strip()]
-    name = lines[0]
-    title = lines[1]
-    description = lines[2]
+   idea_raw = ask_groq(idea_prompt).strip()
+lines = [l.strip() for l in idea_raw.splitlines() if l.strip()]
+
+# strip any numbering like "1." or "1:" from lines
+import re
+lines = [re.sub(r'^\d+[\.\:\-]\s*', '', l) for l in lines]
+
+if len(lines) < 3:
+    print(f"⚠️ Bad idea format, raw output: {idea_raw}")
+    raise ValueError("Groq didn't return 3 lines for the idea")
+
+name = lines[0].lower().replace(" ", "-").replace("_", "-")
+title = lines[1]
+description = lines[2]
 
     # Step 2: get the HTML separately
     code_prompt = f"""Build a complete, fully functional single-page web tool: {title}
