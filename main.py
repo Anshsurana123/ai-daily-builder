@@ -17,7 +17,7 @@ HEADERS = {
 
 GROQ_API_KEY = os.environ["GROQ_API_KEY"]
 
-def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=1024):
+def ask_groq(prompt, model="deepseek-r1-distill-llama-70b", max_tokens=1024):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
@@ -79,7 +79,7 @@ Make it feel like a REAL SaaS product:
 Single HTML file, inline CSS and JS, CDN libraries allowed.
 Respond with ONLY the raw HTML. No explanation, no markdown, no backticks."""
 
-    html = ask_groq(code_prompt, max_tokens=8000).strip()
+    html = ask_groq(code_prompt, max_tokens=32000).strip()
     if html.startswith("```"):
         html = html.split("```")[1]
         if html.startswith("html"):
