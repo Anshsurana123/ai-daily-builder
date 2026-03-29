@@ -3,7 +3,7 @@ name: Daily AI Builder
 on:
   schedule:
     - cron: '30 18 * * *'  # 18:30 UTC = 00:00 IST
-  workflow_dispatch:        # allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,16 +19,12 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests
-        
-      - name: Install dependenc
         run: pip install requests cerebras-cloud-sdk
 
       - name: Run daily builder
         env:
-          
-                    GH_PAT: ${{ secrets.GH_PAT }}
-                    GITHUB_USERNAME: ${{ secrets.GH_USERNAME }}
-                    GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-                    CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          GITHUB_USERNAME: ${{ secrets.GH_USERNAME }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
         run: python main.py
