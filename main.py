@@ -1,5 +1,7 @@
 import os
 import re
+import random
+import string
 import requests
 import base64
 from datetime import datetime
@@ -15,7 +17,7 @@ HEADERS = {
 }
 
 
-def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=1024):
+def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=2048):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
@@ -32,7 +34,7 @@ def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=1024):
     return res.json()["choices"][0]["message"]["content"]
 
 
-def ask_cerebras(prompt, max_tokens=29000):
+def ask_cerebras(prompt, max_tokens=30000):
     from cerebras.cloud.sdk import Cerebras
     client = Cerebras(api_key=CEREBRAS_API_KEY)
     response = client.chat.completions.create(
@@ -53,55 +55,114 @@ def ask_for_code(prompt):
         return ask_groq(prompt, max_tokens=32000)
 
 
+def get_past_ideas():
+    """Fetch last 30 app titles from ai-builds-index to avoid repeats."""
+    url = f"https://raw.githubusercontent.com/{GITHUB_USERNAME}/ai-builds-index/main/README.md"
+    try:
+        res = requests.get(url)
+        if res.status_code != 200:
+            return []
+        lines = res.text.splitlines()
+        titles = []
+        for line in lines:
+            if line.startswith("|") and not line.startswith("| Date") and not line.startswith("|---"):
+                parts = [p.strip() for p in line.split("|")]
+                # title is in column 2, format: [Title](url)
+                match = re.search(r'\[(.+?)\]', parts[2])
+                if match:
+                    titles.append(match.group(1))
+        return titles[-30:]  # last 30 only
+    except Exception as e:
+        print(f"⚠️ Could not fetch past ideas: {e}")
+        return []
+
+
 def generate_idea_and_code():
     today = datetime.now().strftime("%B %d, %Y")
+    past_ideas = get_past_ideas()
 
-    # Step 1: get idea from Groq (fast, small task)
-    idea_prompt = f"""You are an AI that builds impressive single-page web apps daily. Today is {today}.
+    past_ideas_str = ""
+    if past_ideas:
+        past_ideas_str = "\n\nALREADY BUILT (do not repeat these):\n" + "\n".join(f"- {t}" for t in past_ideas)
 
-Come up with a UNIQUE web app idea. Be creative and specific — avoid generic ideas.
-come up with ideas that will actually help people, scan the web for ideas if possible
-BANNED ideas (do not suggest these):
+    # Step 1: get structured project brief from Groq
+    idea_prompt = f"""You are a creative product designer for an AI that ships a new web app every single day. Today is {today}.
+
+Come up with a UNIQUE, specific, and genuinely useful web app idea. Think beyond generic tools — consider apps for writers, musicians, developers, students, travelers, gamers, designers, chefs, athletes etc.
+
+BANNED ideas (too generic):
 - Habit tracker
 - Todo list
 - Goal tracker
 - Pomodoro timer
 - Budget tracker
+- Mood tracker
+- Password generator
+- Unit converter
+{past_ideas_str}
 
-Respond in exactly 3 lines with no extra text:
-Line 1: repo-name-with-dashes (lowercase, no spaces)
-Line 2: Human Readable App Title
-Line 3: Deatiled description of what it does."""
+Return a structured project brief in EXACTLY this format with no extra text:
 
-    idea_raw = ask_groq(idea_prompt).strip()
-    lines = [l.strip() for l in idea_raw.splitlines() if l.strip()]
-    lines = [re.sub(r'^\d+[\.\:\-]\s*', '', l) for l in lines]
+REPO: repo-name-with-dashes
+TITLE: Human Readable App Title
+DESCRIPTION: One sentence description (max 200 chars)
+FEATURES:
+- Core feature 1
+- Core feature 2
+- Core feature 3
+- Core feature 4
+- more core features if any
+VIBE: Describe the UI aesthetic in one sentence (e.g. dark glassmorphism, neon cyberpunk, clean minimalist white)
+LIBS: List any CDN libraries needed (e.g. Chart.js, Tone.js, Three.js) or write "none" """
 
-    if len(lines) < 3:
-        print(f"⚠️ Bad idea format, raw output: {idea_raw}")
-        raise ValueError("Groq didn't return 3 lines for the idea")
+    brief_raw = ask_groq(idea_prompt).strip()
+    print(f"📋 Brief:\n{brief_raw}\n")
 
-    name = lines[0].lower().replace(" ", "-").replace("_", "-")
-    title = lines[1]
-    description = lines[2]
+    # Parse the brief
+    def extract(key, text):
+        match = re.search(rf'{key}:\s*(.+)', text)
+        return match.group(1).strip() if match else ""
+
+    name = extract("REPO", brief_raw).lower().replace(" ", "-").replace("_", "-")
+    title = extract("TITLE", brief_raw)
+    description = extract("DESCRIPTION", brief_raw)
+    vibe = extract("VIBE", brief_raw)
+    libs = extract("LIBS", brief_raw)
+
+    # Extract features list
+    features_match = re.search(r'FEATURES:\n((?:- .+\n?)+)', brief_raw)
+    features = features_match.group(1).strip() if features_match else "- Core functionality"
+
+    if not name or not title or not description:
+        raise ValueError(f"Failed to parse brief. Raw output:\n{brief_raw}")
 
     print(f"💡 Idea: {title} — {description}")
 
-    # Step 2: get the HTML from Cerebras (quality matters here)
-    code_prompt = f"""Build a complete, fully functional web app: {title}
-Description: {description}
+    # Step 2: build the app using the full brief
+    libs_instruction = f"Use these CDN libraries: {libs}" if libs.lower() != "none" else "No external libraries needed unless absolutely necessary"
 
-Make it feel like a REAL SaaS product:
-- A real dashboard with multiple sections/features
-- Stunning modern UI — think Linear, Notion, Vercel dashboard vibes
-- Smooth animations and transitions
-- Charts or data visualizations where relevant (use Chart.js from CDN)
-- Export or share functionality where relevant
-- Fully functional — zero placeholder content
+    code_prompt = f"""You are an expert frontend developer. Build a complete, fully functional web app based on this brief:
 
-Single HTML file, inline CSS and JS, CDN libraries allowed.
-after genrating the code double check it for any errors and if any fix before giving the final response
-Respond with ONLY the raw HTML. No explanation, no markdown, no backticks."""
+TITLE: {title}
+DESCRIPTION: {description}
+
+FEATURES TO IMPLEMENT:
+{features}
+
+UI VIBE: {vibe}
+
+TECHNICAL REQUIREMENTS:
+- Single HTML file with all CSS and JS inline
+- {libs_instruction}
+- Every single feature must be FULLY FUNCTIONAL — no placeholders, no "coming soon", no fake data
+- The app must feel like a real product someone would actually pay for
+- Smooth animations and transitions throughout
+- Responsive design
+- Error handling for edge cases
+
+IMPORTANT: The HTML must be 100% complete. Do not cut off mid-code. Keep it under 800 lines if possible but never sacrifice functionality.
+
+Respond with ONLY the raw HTML code. No explanation, no markdown, no backticks."""
 
     html = ask_for_code(code_prompt).strip()
     if html.startswith("```"):
@@ -110,7 +171,12 @@ Respond with ONLY the raw HTML. No explanation, no markdown, no backticks."""
             html = html[4:]
         html = html.strip().rstrip("```").strip()
 
-    return {"name": name, "title": title, "description": description, "html": html}
+    return {
+        "name": name,
+        "title": title,
+        "description": description[:200],
+        "html": html
+    }
 
 
 def create_github_repo(name, description):
@@ -197,11 +263,12 @@ def update_index_repo(name, title, description, date_str):
 
 def main():
     date_str = datetime.now().strftime("%Y-%m-%d")
+    suffix = ''.join(random.choices(string.ascii_lowercase, k=4))
     print(f"🚀 Starting daily build for {date_str}")
 
     data = generate_idea_and_code()
 
-    name = f"{data['name']}-{date_str}"
+    name = f"{data['name']}-{date_str}-{suffix}"
     title = data["title"]
     description = data["description"]
     html = data["html"]
