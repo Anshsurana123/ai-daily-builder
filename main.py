@@ -7,6 +7,7 @@ from datetime import datetime
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 GITHUB_USERNAME = os.environ["GITHUB_USERNAME"]
+GROQ_API_KEY = os.environ["GROQ_API_KEY"]
 
 HEADERS = {
     "Authorization": f"token {GITHUB_TOKEN}",
