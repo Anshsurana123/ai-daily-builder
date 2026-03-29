@@ -30,6 +30,7 @@ def ask_groq(prompt, model="deepseek-r1-distill-llama-70b", max_tokens=1024):
         "temperature": 0.9
     }
     res = requests.post(url, headers=headers, json=body)
+    print(f"❌ Groq error: {res.status_code} - {res.text}")
     res.raise_for_status()
     return res.json()["choices"][0]["message"]["content"]
 
