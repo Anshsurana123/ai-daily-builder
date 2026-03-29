@@ -32,7 +32,7 @@ def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=1024):
     return res.json()["choices"][0]["message"]["content"]
 
 
-def ask_cerebras(prompt, max_tokens=8192):
+def ask_cerebras(prompt, max_tokens=29000):
     from cerebras.cloud.sdk import Cerebras
     client = Cerebras(api_key=CEREBRAS_API_KEY)
     response = client.chat.completions.create(
