@@ -27,6 +27,7 @@ def ask_gemini(prompt):
 
 def generate_idea_and_code():
     today = datetime.now().strftime("%B %d, %Y")
+    fmt = '{"name": "repo-name", "title": "Tool Title", "description": "One sentence.", "html": "FULL HTML AS SINGLE LINE"}'
     prompt = f"""You are an AI that builds useful web tools daily. Today is {today}.
 
 Your task:
@@ -39,13 +40,9 @@ Rules:
 - No placeholder content — fully functional
 - Do NOT repeat ideas that are too common — be creative
 
-Respond ONLY in valid JSON. No markdown, no backticks, no explanation. The "html" field must be a single line string — escape all newlines as \n and all double quotes inside the HTML as \". Format: {{"name": "repo-name", "title": "Tool Title", "description": "One sentence.", "html": "FULL HTML AS SINGLE LINE"}}"""
-{{
-  "name": "short-repo-name-with-dashes",
-  "title": "Human Readable Tool Title",
-  "description": "One sentence describing what this tool does",
-  "html": "FULL HTML CODE HERE"
-}}"""
+Respond ONLY in valid JSON. No markdown, no backticks, no explanation.
+The "html" field must be a single line string — escape all newlines as \\n and all double quotes inside the HTML as \\".
+Format: {fmt}"""
 
     raw = ask_gemini(prompt)
 
