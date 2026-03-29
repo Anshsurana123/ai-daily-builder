@@ -83,6 +83,8 @@ def create_github_repo(name, description):
         "auto_init": False
     }
     res = requests.post(url, headers=HEADERS, json=body)
+    if not res.ok:
+        print(f"❌ GitHub error: {res.status_code} - {res.text}")
     res.raise_for_status()
     print(f"✅ Repo created: {name}")
     return res.json()
