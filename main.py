@@ -88,13 +88,11 @@ Line 3: Deatiled description of what it does."""
     print(f"💡 Idea: {title} — {description}")
 
     # Step 2: get the HTML from Cerebras (quality matters here)
-    code_prompt = f"""Build a complete, fully functional single-page web app: {title}
+    code_prompt = f"""Build a complete, fully functional web app: {title}
 Description: {description}
 
 Make it feel like a REAL SaaS product:
-- Proper landing/login screen with localStorage-based "auth" (just a username, no password needed)
 - A real dashboard with multiple sections/features
-- Data persistence using localStorage
 - Stunning modern UI — think Linear, Notion, Vercel dashboard vibes
 - Smooth animations and transitions
 - Charts or data visualizations where relevant (use Chart.js from CDN)
