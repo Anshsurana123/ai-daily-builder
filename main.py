@@ -39,7 +39,7 @@ Rules:
 - No placeholder content — fully functional
 - Do NOT repeat ideas that are too common — be creative
 
-Respond ONLY in this exact JSON format (no markdown, no backticks):
+Respond ONLY in valid JSON. No markdown, no backticks, no explanation. The "html" field must be a single line string — escape all newlines as \n and all double quotes inside the HTML as \". Format: {{"name": "repo-name", "title": "Tool Title", "description": "One sentence.", "html": "FULL HTML AS SINGLE LINE"}}"""
 {{
   "name": "short-repo-name-with-dashes",
   "title": "Human Readable Tool Title",
