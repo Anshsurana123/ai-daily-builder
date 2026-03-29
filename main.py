@@ -27,34 +27,41 @@ def ask_gemini(prompt):
 
 def generate_idea_and_code():
     today = datetime.now().strftime("%B %d, %Y")
-    fmt = '{"name": "repo-name", "title": "Tool Title", "description": "One sentence.", "html": "FULL HTML AS SINGLE LINE"}'
-    prompt = f"""You are an AI that builds useful web tools daily. Today is {today}.
 
-Your task:
-1. Come up with a unique, genuinely useful single-page web tool idea (examples: unit converter, password generator, markdown previewer, color palette generator, pomodoro timer, BMI calculator, tip splitter, text diff checker, etc.)
-2. Build it as a complete, working single HTML file with inline CSS and JS. No external dependencies except maybe a Google Font or a CDN library if truly needed.
+    # Step 1: get idea as simple text
+    idea_prompt = f"""You are an AI that builds useful web tools daily. Today is {today}.
+Come up with a unique, genuinely useful single-page web tool idea.
+Respond in exactly 3 lines:
+Line 1: repo-name-with-dashes (lowercase, no spaces)
+Line 2: Human Readable Tool Title
+Line 3: One sentence description of what it does."""
+
+    idea_raw = ask_gemini(idea_prompt).strip()
+    lines = [l.strip() for l in idea_raw.splitlines() if l.strip()]
+    name = lines[0]
+    title = lines[1]
+    description = lines[2]
+
+    # Step 2: get the HTML separately
+    code_prompt = f"""Build a complete, working single HTML file for this tool: {title}
+Description: {description}
 
 Rules:
-- The tool must actually work and be useful
-- Make it look clean and modern (dark or light theme, your choice)
-- No placeholder content — fully functional
-- Do NOT repeat ideas that are too common — be creative
+- Fully functional, no placeholders
+- Inline CSS and JS only
+- Clean modern design (dark or light theme)
+- No external dependencies except CDN libraries if truly needed
 
-Respond ONLY in valid JSON. No markdown, no backticks, no explanation.
-The "html" field must be a single line string — escape all newlines as \\n and all double quotes inside the HTML as \\".
-Format: {fmt}"""
+Respond with ONLY the raw HTML code. No explanation, no markdown, no backticks."""
 
-    raw = ask_gemini(prompt)
+    html = ask_gemini(code_prompt).strip()
+    if html.startswith("```"):
+        html = html.split("```")[1]
+        if html.startswith("html"):
+            html = html[4:]
+        html = html.strip().rstrip("```").strip()
 
-    # strip possible markdown fences
-    raw = raw.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    raw = raw.strip().rstrip("```").strip()
-
-    return json.loads(raw)
+    return {"name": name, "title": title, "description": description, "html": html}
 
 
 def create_github_repo(name, description):
