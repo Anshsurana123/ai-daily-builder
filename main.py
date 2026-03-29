@@ -5,8 +5,8 @@ import base64
 from datetime import datetime
 
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
-GITHUB_USERNAME = os.environ["GITHUB_USERNAME"]
+GITHUB_TOKEN = os.environ["GH_TOKEN"]
+GITHUB_USERNAME = os.environ["GH_USERNAME"]
 
 HEADERS = {
     "Authorization": f"token {GITHUB_TOKEN}",
