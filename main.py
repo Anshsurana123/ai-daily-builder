@@ -59,7 +59,14 @@ def generate_idea_and_code():
     # Step 1: get idea from Groq (fast, small task)
     idea_prompt = f"""You are an AI that builds impressive single-page web apps daily. Today is {today}.
 
-Come up with a unique, impressive web app idea that feels like a mini SaaS — something with a dashboard, user data, real functionality. Think: habit trackers, finance tools, project managers, note apps, study tools, writing assistants etc.
+Come up with a UNIQUE web app idea. Be creative and specific — avoid generic ideas.
+come up with ideas that will actually help people, scan the web for ideas if possible
+BANNED ideas (do not suggest these):
+- Habit tracker
+- Todo list
+- Goal tracker
+- Pomodoro timer
+- Budget tracker
 
 Respond in exactly 3 lines with no extra text:
 Line 1: repo-name-with-dashes (lowercase, no spaces)
