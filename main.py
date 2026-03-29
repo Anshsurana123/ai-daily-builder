@@ -113,6 +113,7 @@ FEATURES:
 - Core feature 4
 - more core features if any
 VIBE: Describe the UI aesthetic in one sentence (e.g. dark glassmorphism, neon cyberpunk, clean minimalist white)
+BUTTONS: Specify buttons
 LIBS: List any CDN libraries needed (e.g. Chart.js, Tone.js, Three.js) or write "none" """
 
     brief_raw = ask_groq(idea_prompt).strip()
@@ -159,6 +160,7 @@ TECHNICAL REQUIREMENTS:
 - Smooth animations and transitions throughout
 - Responsive design
 - Error handling for edge cases
+- Complete clickable buttons that actually do something
 
 IMPORTANT: The HTML must be 100% complete. Do not cut off mid-code. Keep it under 800 lines if possible but never sacrifice functionality.
 
