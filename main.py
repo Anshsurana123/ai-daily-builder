@@ -35,46 +35,58 @@ def ask_groq(prompt, model="llama-3.3-70b-versatile", max_tokens=1024):
 
 
 def generate_idea_and_code():
+    import re
     today = datetime.now().strftime("%B %d, %Y")
 
     # Step 1: get idea as simple text
-    idea_prompt = f"""You are an AI that builds useful web tools daily. Today is {today}.
-Come up with a unique, genuinely useful single-page web tool idea.
+    idea_prompt = f"""You are an AI that builds impressive single-page web apps daily. Today is {today}.
+
+Come up with a unique, impressive web app idea that feels like a mini SaaS — something with a dashboard, user data, real functionality. Think: habit trackers, finance tools, project managers, note apps, study tools, writing assistants etc.
+
 Respond in exactly 3 lines:
 Line 1: repo-name-with-dashes (lowercase, no spaces)
-Line 2: Human Readable Tool Title
+Line 2: Human Readable App Title
 Line 3: One sentence description of what it does."""
 
-   idea_raw = ask_groq(idea_prompt).strip()
-lines = [l.strip() for l in idea_raw.splitlines() if l.strip()]
+    idea_raw = ask_groq(idea_prompt).strip()
+    lines = [l.strip() for l in idea_raw.splitlines() if l.strip()]
+    lines = [re.sub(r'^\d+[\.\:\-]\s*', '', l) for l in lines]
 
-# strip any numbering like "1." or "1:" from lines
-import re
-lines = [re.sub(r'^\d+[\.\:\-]\s*', '', l) for l in lines]
+    if len(lines) < 3:
+        print(f"⚠️ Bad idea format, raw output: {idea_raw}")
+        raise ValueError("Groq didn't return 3 lines for the idea")
 
-if len(lines) < 3:
-    print(f"⚠️ Bad idea format, raw output: {idea_raw}")
-    raise ValueError("Groq didn't return 3 lines for the idea")
+    name = lines[0].lower().replace(" ", "-").replace("_", "-")
+    title = lines[1]
+    description = lines[2]
 
-name = lines[0].lower().replace(" ", "-").replace("_", "-")
-title = lines[1]
-description = lines[2]
+    print(f"💡 Idea: {title} — {description}")
 
     # Step 2: get the HTML separately
-    code_prompt = f"""Build a complete, fully functional single-page web tool: {title}
+    code_prompt = f"""Build a complete, fully functional single-page web app: {title}
 Description: {description}
 
-STRICT RULES:
-- Every feature must ACTUALLY WORK — no fake, simulated, or placeholder functionality
-- If the tool needs AI, use the Gemini API with key "AIzaSy..." — just kidding, keep it client-side only
-- Use clever JavaScript to make it genuinely useful — localStorage for persistence, Canvas for visuals, Web APIs like speech synthesis, geolocation, clipboard, drag and drop etc where relevant
-- Make the UI look stunning — gradients, animations, smooth transitions, modern design
-- Think beyond basic input/output — add export buttons, keyboard shortcuts, live previews, history, undo/redo if relevant
-- Single HTML file, inline CSS and JS only
-- No external dependencies except CDN libraries if truly needed (chart.js, tone.js etc)
+Make it feel like a REAL SaaS product:
+- Proper landing/login screen with localStorage-based "auth" (just a username, no password needed)
+- A real dashboard with multiple sections/features
+- Data persistence using localStorage
+- Stunning modern UI — think Linear, Notion, Vercel dashboard vibes
+- Smooth animations and transitions
+- Charts or data visualizations where relevant (use Chart.js from CDN)
+- Export or share functionality where relevant
+- Fully functional — zero placeholder content
 
+Single HTML file, inline CSS and JS, CDN libraries allowed.
 Respond with ONLY the raw HTML. No explanation, no markdown, no backticks."""
 
+    html = ask_groq(code_prompt, max_tokens=8000).strip()
+    if html.startswith("```"):
+        html = html.split("```")[1]
+        if html.startswith("html"):
+            html = html[4:]
+        html = html.strip().rstrip("```").strip()
+
+    return {"name": name, "title": title, "description": description, "html": html}
 
 def create_github_repo(name, description):
     url = "https://api.github.com/user/repos"
